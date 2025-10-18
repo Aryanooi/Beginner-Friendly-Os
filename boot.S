@@ -1,51 +1,27 @@
-# set magic number to 0x1BADB002 to identified by bootloader   
-.set MAGIC,    0x1BADB002  
-  
-# set flags to 0  
-.set FLAGS,    0  
-  
-# set the checksum  
-.set CHECKSUM, -(MAGIC + FLAGS)  
-  
-# set multiboot enabled  
-.section .multiboot  
-  
-# define type to long for each data defined as above  
-.long MAGIC  
-.long FLAGS  
-.long CHECKSUM  
-  
-  
-# set the stack bottom   
-stackBottom:  
-  
-# define the maximum size of stack to 512 bytes  
-.skip 512  
-  
-  
-# set the stack top which grows from higher to lower  
-stackTop:  
-  
-.section .text  
-.global _start  
-.type _start, @function  
-  
-  
-_start:  
-  
-  # assign current stack pointer location to stackTop  
-    mov $stackTop, %esp  
-  
-  # call the kernel main source  
-    call KERNEL_MAIN  
-  
-    cli  
-  
-  
-# put system in infinite loop  
-hltLoop:  
-  
-    hlt  
-    jmp hltLoop  
-  
-.size _start, . - _start  
+.section .text
+.align 4
+# Multiboot header at the very start of .text (within first 8 KiB)
+.long 0x1BADB002          # MAGIC
+.long 0                    # FLAGS
+.long -(0x1BADB002 + 0)    # CHECKSUM
+
+# Simple 4 KiB stack
+.section .bss
+.align 16
+stack_area:
+    .skip 4096
+stack_top:
+
+.section .text
+.global _start
+.type _start, @function
+_start:
+    mov $stack_top, %esp
+    call KERNEL_MAIN
+    cli
+1:  hlt
+    jmp 1b
+.size _start, . - _start
+
+# Silence exec-stack warning
+.section .note.GNU-stack,"",@progbits
